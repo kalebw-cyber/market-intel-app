@@ -1,0 +1,9 @@
+export const HI_KW =["trump","federal reserve","fed","interest rate","inflation","rate cut","rate hike","recession","gdp","unemployment","tariff","sanctions","war","default","crisis","collapse"];
+export const ERN_KW=["earnings","revenue","eps","guidance","quarter results","profit","quarterly"];
+export const MOVE_T={SPY:1.0,QQQ:1.2,AAPL:2.0,TSLA:2.0,NVDA:3.0,MSFT:2.0,TLT:1.0,IEF:0.8};
+export const SC={Bullish:{bg:"rgba(16,185,129,0.12)",border:"#10B981",text:"#10B981"},Bearish:{bg:"rgba(239,68,68,0.12)",border:"#EF4444",text:"#EF4444"},Neutral:{bg:"rgba(107,114,128,0.12)",border:"#6B7280",text:"#9CA3AF"},Error:{bg:"rgba(239,68,68,0.08)",border:"#EF4444",text:"#EF4444"}};
+export const AC={BUY:{bg:"rgba(16,185,129,0.15)",border:"#10B981",text:"#10B981"},SELL:{bg:"rgba(239,68,68,0.15)",border:"#EF4444",text:"#EF4444"},HOLD:{bg:"rgba(245,158,11,0.15)",border:"#F59E0B",text:"#F59E0B"}};
+export const RC={Low:{bg:"rgba(16,185,129,0.1)",border:"#10B981",text:"#10B981"},Medium:{bg:"rgba(245,158,11,0.1)",border:"#F59E0B",text:"#F59E0B"},High:{bg:"rgba(239,68,68,0.1)",border:"#EF4444",text:"#EF4444"}};
+export const VC={High:{bg:"rgba(239,68,68,0.1)",border:"rgba(239,68,68,0.25)",text:"#EF4444"},Medium:{bg:"rgba(245,158,11,0.1)",border:"rgba(245,158,11,0.25)",text:"#F59E0B"},Low:{bg:"rgba(16,185,129,0.1)",border:"rgba(16,185,129,0.25)",text:"#10B981"}};
+export const EVC={earnings:{c:"#F59E0B",bg:"rgba(245,158,11,0.1)"},macro:{c:"#60A5FA",bg:"rgba(96,165,250,0.1)"},fed:{c:"#EF4444",bg:"rgba(239,68,68,0.1)"}};
+export const CONF_C={High:{text:"#10B981"},Medium:{text:"#F59E0B"},Low:{text:"#EF4444"}};

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Simple in-memory rate limit (per IP, 15 requests / minute)
+// In-memory rate limit (per IP, 15 requests / minute)
 const RATE = new Map<string, { count: number; resetAt: number }>();
 const LIMIT = 15;
 const WINDOW_MS = 60 * 1000;
@@ -20,22 +20,11 @@ function checkRate(ip: string) {
   return true;
 }
 
-const SYSTEM = `You are a financial-news analyst. Analyze the article and return STRICT JSON only.
-Schema: {
-  "sentiment":"Bullish"|"Bearish"|"Neutral",
-  "impact":"High"|"Medium"|"Low",
-  "summary":"2-3 sentences explaining what happened and likely market response",
-  "reasoning":"1-2 sentences justifying the sentiment + impact label",
-  "affectedAssets":["TICKER1","TICKER2"]
-}
-Use real ticker symbols (AAPL, NVDA, BTC, etc). Return JSON ONLY, no markdown, no preamble.`;
-
 export async function POST(req: Request) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
     req.headers.get("x-real-ip") ||
     "unknown";
-
   if (!checkRate(ip)) {
     return NextResponse.json(
       { error: "rate_limited", message: "Too many requests, slow down." },
@@ -43,29 +32,28 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { title?: string; snippet?: string } = {};
+  let body: Record<string, unknown> = {};
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "bad_json" }, { status: 400 });
   }
 
-  const { title = "", snippet = "" } = body;
-  if (!title) return NextResponse.json({ error: "missing_title" }, { status: 400 });
-
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      {
-        sentiment: "Neutral",
-        impact: "Medium",
-        summary: "AI analysis unavailable — ANTHROPIC_API_KEY not configured.",
-        reasoning: "Set the env var in Vercel project settings to enable real analysis.",
-        affectedAssets: [],
-      },
-      { status: 200 }
+      { error: "no_api_key", message: "ANTHROPIC_API_KEY not configured in Vercel." },
+      { status: 500 }
     );
   }
+
+  // Force the model to one we know is available, regardless of what the client requested.
+  // Override max_tokens to a safe cap as well.
+  const payload = {
+    ...body,
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: Math.min(Number(body.max_tokens) || 1200, 1500),
+  };
 
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -75,51 +63,29 @@ export async function POST(req: Request) {
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 600,
-        system: SYSTEM,
-        messages: [
-          {
-            role: "user",
-            content: `Title: ${title}\n\nSnippet: ${snippet || "(no snippet)"}\n\nReturn the JSON only.`,
-          },
-        ],
-      }),
+      body: JSON.stringify(payload),
     });
 
+    const text = await resp.text();
     if (!resp.ok) {
-      const errText = await resp.text();
-      console.error("Anthropic API error:", resp.status, errText);
-      return NextResponse.json({ error: "upstream_error", status: resp.status }, { status: 502 });
+      console.error("Anthropic API error:", resp.status, text);
+      return new NextResponse(text, {
+        status: resp.status,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    const data = await resp.json();
-    const text =
-      data.content?.find((b: { type: string }) => b.type === "text")?.text || "";
-
-    const cleaned = text.replace(/```json\s?|```/g, "").trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      return NextResponse.json(
-        {
-          sentiment: "Neutral",
-          impact: "Medium",
-          summary: "AI returned non-JSON output.",
-          reasoning: cleaned.slice(0, 200),
-          affectedAssets: [],
-        },
-        { status: 200 }
-      );
-    }
-
-    return NextResponse.json(parsed);
+    // Pass the Anthropic response straight through so the frontend can parse it as-is.
+    return new NextResponse(text, {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("Anthropic call failed:", msg);
-    return NextResponse.json({ error: "request_failed", message: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: "request_failed", message: msg },
+      { status: 500 }
+    );
   }
 }

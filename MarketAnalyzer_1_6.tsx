@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef, useMemo, Fragment } from "react";
+import ApiLoggerWidget from "./components/ApiLoggerWidget";
 import { ASSETS, ASSET_KEYWORDS, ALL_CATEGORIES, SIGNAL_ALLOWED_CATS, MOCK_NEWS, SECTOR_DATA, TOPIC_TAGS } from "./src/data/marketData";
 import { HI_KW, ERN_KW, MOVE_T, SC, AC, RC, VC, EVC, CONF_C } from "./src/styles/marketConstants";
 import { safePrompt, extractSource, displaySymbol, getAssetNews, detectEarnings, detectMarketMovement, detectTopics, generateEarningsInsight, explainMarketMovement, normalizeNewsItem, newsTokenSet, newsSimilarity, dedupeNewsArticles, getMarketSentiment, getFearGreed, detectMarketRegime, categoryAverage, textScore, clamp, classifyNewsQuality, webIntelligence, technicalStructure, portfolioRiskLayer, assetMarketProfile, institutionalDecision, generateNarrative, enhanceOpportunity, computeAssetRisk, generateAssetWhyMatters, generateAssetShortTerm, generateAssetLongTerm, generateOppWhyExists, isHighImpact, timeAgo, fmtCD, getBenchmarkSymbols } from "./src/lib/marketLogic";
@@ -2029,5 +2030,6 @@ export default function MarketAnalyzer(){
     <OppDetailModal opp={selOpp} news={news} onClose={()=>setSelOpp(null)} onOpenDetail={sym=>{setSelOpp(null);openDetail(sym);}}/>
 
     <AIChatWidget news={news} assets={ASSETS} watchlist={watchlist}/>
+    <ApiLoggerWidget/>
   </div>);
 }

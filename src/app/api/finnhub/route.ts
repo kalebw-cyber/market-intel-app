@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FINNHUB_KEY } from "../../../config/api";
+import { apiLogger, generateRequestId } from "../../../lib/apiLogger";
 
 type CacheEntry = {
   data: unknown;
@@ -52,20 +53,36 @@ function buildFinnhubUrl(endpoint: string, searchParams: URLSearchParams) {
   return `https://finnhub.io/api/v1${endpoint}?${params.toString()}`;
 }
 
+
 export async function GET(req: NextRequest) {
+  const requestId = generateRequestId();
+  const startMs = Date.now();
   const endpoint = req.nextUrl.searchParams.get("endpoint") || "";
+
   // Finnhub moved /stock/candle to a paid tier — short-circuit with empty payload.
   if (endpoint === "/stock/candle") {
+    apiLogger.log({
+      requestId,
+      service: "finnhub",
+      endpoint,
+      method: "GET",
+      status: 200,
+      latency_ms: Date.now() - startMs,
+      cache: { hit: false, status: "SKIP" },
+      metadata: { reason: "premium-tier-only" },
+    });
     return NextResponse.json(
       { s: "no_data", c: [], h: [], l: [], o: [], t: [], v: [] },
       {
         headers: {
           "X-MarketIntel-Cache": "SKIP",
           "X-MarketIntel-Skip-Reason": "premium-tier-only",
+          "X-MarketIntel-Request-Id": requestId,
         },
       }
     );
   }
+
   const ttl = endpointTtl(endpoint);
   const cacheKey = `${endpoint}?${new URLSearchParams(
     [...req.nextUrl.searchParams.entries()]
@@ -76,21 +93,50 @@ export async function GET(req: NextRequest) {
   const cached = store.cache.get(cacheKey);
 
   if (cached && cached.expiry > now) {
+    const sizeBytes = JSON.stringify(cached.data).length;
+    apiLogger.log({
+      requestId,
+      service: "finnhub",
+      endpoint,
+      method: "GET",
+      status: 200,
+      latency_ms: Date.now() - startMs,
+      cache: {
+        hit: true,
+        status: "HIT",
+        ttl_remaining_ms: Math.max(0, cached.expiry - now),
+      },
+      size_bytes: sizeBytes,
+      metadata: { cacheAge_s: Math.floor((now - cached.savedAt) / 1000) },
+    });
     return NextResponse.json(cached.data, {
       headers: {
         "X-MarketIntel-Cache": "HIT",
         "X-MarketIntel-Cache-Age": String(Math.floor((now - cached.savedAt) / 1000)),
         "X-MarketIntel-Cache-TTL": String(Math.floor(ttl / 1000)),
+        "X-MarketIntel-Request-Id": requestId,
       },
     });
   }
 
   if (store.pending.has(cacheKey)) {
     const data = await store.pending.get(cacheKey)!;
+    const sizeBytes = JSON.stringify(data).length;
+    apiLogger.log({
+      requestId,
+      service: "finnhub",
+      endpoint,
+      method: "GET",
+      status: 200,
+      latency_ms: Date.now() - startMs,
+      cache: { hit: true, status: "WAIT" },
+      size_bytes: sizeBytes,
+    });
     return NextResponse.json(data, {
       headers: {
         "X-MarketIntel-Cache": "WAIT",
         "X-MarketIntel-Cache-TTL": String(Math.floor(ttl / 1000)),
+        "X-MarketIntel-Request-Id": requestId,
       },
     });
   }
@@ -99,10 +145,17 @@ export async function GET(req: NextRequest) {
   try {
     url = buildFinnhubUrl(endpoint, req.nextUrl.searchParams);
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Invalid Finnhub request" },
-      { status: 400 }
-    );
+    const msg = err instanceof Error ? err.message : "Invalid Finnhub request";
+    apiLogger.log({
+      requestId,
+      service: "finnhub",
+      endpoint,
+      method: "GET",
+      status: 400,
+      latency_ms: Date.now() - startMs,
+      error: msg,
+    });
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
   const requestPromise = fetch(url, { cache: "no-store" }).then(async (res) => {
@@ -130,27 +183,66 @@ export async function GET(req: NextRequest) {
 
   try {
     const data = await requestPromise;
+    const sizeBytes = JSON.stringify(data).length;
+    apiLogger.log({
+      requestId,
+      service: "finnhub",
+      endpoint,
+      method: "GET",
+      status: 200,
+      latency_ms: Date.now() - startMs,
+      cache: { hit: false, status: "MISS" },
+      size_bytes: sizeBytes,
+    });
     return NextResponse.json(data, {
       headers: {
         "X-MarketIntel-Cache": "MISS",
         "X-MarketIntel-Cache-TTL": String(Math.floor(ttl / 1000)),
+        "X-MarketIntel-Request-Id": requestId,
       },
     });
   } catch (err) {
     if (cached) {
+      const sizeBytes = JSON.stringify(cached.data).length;
+      apiLogger.log({
+        requestId,
+        service: "finnhub",
+        endpoint,
+        method: "GET",
+        status: 200,
+        latency_ms: Date.now() - startMs,
+        cache: { hit: true, status: "STALE" },
+        size_bytes: sizeBytes,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return NextResponse.json(cached.data, {
         headers: {
           "X-MarketIntel-Cache": "STALE",
           "X-MarketIntel-Cache-TTL": String(Math.floor(ttl / 1000)),
+          "X-MarketIntel-Request-Id": requestId,
         },
       });
     }
 
+    const msg = err instanceof Error ? err.message : "Finnhub request failed";
+    apiLogger.log({
+      requestId,
+      service: "finnhub",
+      endpoint,
+      method: "GET",
+      status: 502,
+      latency_ms: Date.now() - startMs,
+      error: msg,
+    });
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Finnhub request failed" },
-      { status: 502 }
+      { error: msg },
+      {
+        status: 502,
+        headers: { "X-MarketIntel-Request-Id": requestId },
+      }
     );
   } finally {
     store.pending.delete(cacheKey);
   }
 }
+

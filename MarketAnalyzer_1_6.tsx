@@ -1492,17 +1492,41 @@ export default function MarketAnalyzer(){
   const analyzeAll=async()=>{
     setAnAll(true);
     const toAnalyze=filteredNews.map(a=>news.indexOf(a)).filter(i=>i>=0&&!analyses[i]&&!analyzing[i]);
+    if(toAnalyze.length===0){setAnAll(false);return;}
     setAnalyzeProgress({done:0,total:toAnalyze.length});
-    let done=0;
-    for(const i of toAnalyze){
-      await analyzeArticle(i);
-      done++;
-      setAnalyzeProgress({done,total:toAnalyze.length});
-      await new Promise(r=>setTimeout(r,1500));
+    const markAnalyzing={};toAnalyze.forEach(i=>{markAnalyzing[i]=true;});setAnalyzing(p=>({...p,...markAnalyzing}));
+    try{
+      const articles=toAnalyze.map(i=>{const a=news[i];return{title:a.title,snippet:a.snippet,duplicateCount:a.duplicateCount,duplicateSources:a.duplicateSources};});
+      const res=await fetch("/api/analyze-batch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({articles})});
+      if(!res.ok){const t=await res.text();console.error("Batch error:",res.status,t);throw new Error("API "+res.status);}
+      const data=await res.json();
+      const results=data.analyses??[];
+      const newAnalyses={};
+      const allAffected=[];
+      for(let j=0;j<toAnalyze.length;j++){
+        const i=toAnalyze[j];
+        const analysis=results[j]||{error:true,summary:"No result returned",sentiment:"Error",reasoning:"Batch result missing for this article",affectedAssets:[]};
+        newAnalyses[i]=analysis;
+        if(analysis.affectedAssets?.length>0)allAffected.push(...analysis.affectedAssets);
+        const article=news[i];
+        if(isHighImpact(article)){addNotif(` HIGH IMPACT: ${article.title.slice(0,52)}...`,"alert");sendTelegram(` <b>HIGH IMPACT ALERT</b>\n\n${article.title}\n\n${analysis.summary||""}\n\nSentiment: ${analysis.sentiment||"N/A"}`);};
+      }
+      if(allAffected.length>0)await resolveUnknownAssets([...new Set(allAffected)]);
+      setAnalyses(p=>({...p,...newAnalyses}));
+      setAnalyzeProgress({done:toAnalyze.length,total:toAnalyze.length});
+      addNotif(`OK Analyzed ${toAnalyze.length} article${toAnalyze.length!==1?"s":""}!`,"success");
+    }catch(err){
+      const msg=err.message||"Unknown error";
+      if(msg.includes("API 401"))addNotif("x API key invalid - check ANTHROPIC_API_KEY","alert");
+      else if(msg.includes("API 429"))addNotif("Loading Rate limited - wait a moment and retry","alert");
+      else if(msg.includes("API 5"))addNotif("Hot Anthropic API is down - try again later","alert");
+      else if(msg.includes("Failed to fetch"))addNotif("Signal Network error - check your connection","alert");
+      else addNotif(`x Batch analysis failed: ${msg.slice(0,40)}`,"alert");
+    }finally{
+      const clearAnalyzing={};toAnalyze.forEach(i=>{clearAnalyzing[i]=false;});setAnalyzing(p=>({...p,...clearAnalyzing}));
+      setAnAll(false);
+      setAnalyzeProgress({done:0,total:0});
     }
-    setAnAll(false);
-    setAnalyzeProgress({done:0,total:0});
-    addNotif(`OK Analyzed ${done} article${done!==1?"s":""}!`,"success");
   };
 
   const quickAnalyze=useCallback(async(sym)=>{

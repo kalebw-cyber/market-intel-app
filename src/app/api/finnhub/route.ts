@@ -54,6 +54,18 @@ function buildFinnhubUrl(endpoint: string, searchParams: URLSearchParams) {
 
 export async function GET(req: NextRequest) {
   const endpoint = req.nextUrl.searchParams.get("endpoint") || "";
+  // Finnhub moved /stock/candle to a paid tier — short-circuit with empty payload.
+  if (endpoint === "/stock/candle") {
+    return NextResponse.json(
+      { s: "no_data", c: [], h: [], l: [], o: [], t: [], v: [] },
+      {
+        headers: {
+          "X-MarketIntel-Cache": "SKIP",
+          "X-MarketIntel-Skip-Reason": "premium-tier-only",
+        },
+      }
+    );
+  }
   const ttl = endpointTtl(endpoint);
   const cacheKey = `${endpoint}?${new URLSearchParams(
     [...req.nextUrl.searchParams.entries()]

@@ -1150,34 +1150,8 @@ export default function MarketAnalyzer(){
     }catch{}
   },[]);
 
-  const fetchCandleHistory=useCallback(async(sym)=>{
-    if(sym.includes(":")||sym.startsWith("^"))return false;
-    const asset=ASSETS.find(a=>a.symbol===sym);
-    if(asset?._history?.length>=20&&asset?._historyFetchedAt&&Date.now()-asset._historyFetchedAt<6*60*60*1000)return true;
-    const now=Date.now();
-    if(now-callResetRef.current>60000){callCountRef.current=0;callResetRef.current=now;}
-    if(callCountRef.current>=55)return false;
-    const elapsed=now-lastFetchTimeRef.current;
-    if(elapsed<1000)await new Promise(r=>setTimeout(r,1000-elapsed));
-    try{
-      callCountRef.current++;
-      lastFetchTimeRef.current=Date.now();
-      const to=Math.floor(Date.now()/1000);
-      const from=to-(120*24*60*60);
-      // Use request coalescing for candle requests
-      const res=await requestBatcher.fetchWithCoalescing(finnhubUrl("/stock/candle",{symbol:sym,resolution:"D",from,to}), undefined, 3, 100);
-      const data=await res.json();
-      if(data?.s==="ok"&&Array.isArray(data.c)&&data.c.length>=20){
-        const candles=data.c.map((close,i)=>({time:data.t?.[i],open:data.o?.[i]||close,high:data.h?.[i]||close,low:data.l?.[i]||close,close,volume:data.v?.[i]||0}));
-        if(asset){
-          asset._history=candles;
-          asset._historyFetchedAt=Date.now();
-        }
-        return true;
-      }
-    }catch(e){console.warn("Candle history error:",sym,e);}
-    return false;
-  },[]);
+  // /stock/candle is blocked on Finnhub's free tier — stub out to avoid wasted requests
+  const fetchCandleHistory=useCallback(async(_sym:string)=>false,[]);
 
   const attachBenchmarkHistories=useCallback(async(sym)=>{
     const asset=ASSETS.find(a=>a.symbol===sym);

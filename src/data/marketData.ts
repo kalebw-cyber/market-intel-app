@@ -24,39 +24,11 @@ export let ASSETS = [
   {symbol:"SOXL",name:"Direxion Semiconductor Bull 3X",price:32.40,change:5.82,category:"ETF"},
   {symbol:"XLF",name:"Financial Select Sector SPDR",price:42.10,change:0.38,category:"ETF"},
   {symbol:"XLE",name:"Energy Select Sector SPDR",price:87.90,change:-0.55,category:"ETF"},
-  // ── Crypto ──
-  {symbol:"BINANCE:BTCUSDT",name:"Bitcoin",price:97500,change:1.85,category:"Crypto"},
-  {symbol:"BINANCE:ETHUSDT",name:"Ethereum",price:3420,change:2.43,category:"Crypto"},
-  {symbol:"BINANCE:SOLUSDT",name:"Solana",price:178,change:3.12,category:"Crypto"},
-  {symbol:"BINANCE:XRPUSDT",name:"XRP",price:2.18,change:-0.95,category:"Crypto"},
-  {symbol:"BINANCE:DOGEUSDT",name:"Dogecoin",price:0.18,change:1.67,category:"Crypto"},
-  {symbol:"BINANCE:ADAUSDT",name:"Cardano",price:0.72,change:0.88,category:"Crypto"},
-  {symbol:"BINANCE:AVAXUSDT",name:"Avalanche",price:36.40,change:1.93,category:"Crypto"},
-  {symbol:"BINANCE:LINKUSDT",name:"Chainlink",price:18.25,change:2.11,category:"Crypto"},
-  // ── Forex ──
-  {symbol:"OANDA:EUR_USD",name:"EUR/USD",price:1.08,change:0.12,category:"Forex"},
-  {symbol:"OANDA:GBP_USD",name:"GBP/USD",price:1.27,change:0.08,category:"Forex"},
-  {symbol:"OANDA:USD_JPY",name:"USD/JPY",price:154.30,change:-0.24,category:"Forex"},
-  {symbol:"OANDA:USD_CAD",name:"USD/CAD",price:1.36,change:-0.15,category:"Forex"},
-  {symbol:"OANDA:AUD_USD",name:"AUD/USD",price:0.66,change:0.31,category:"Forex"},
-  // ── Commodities ──
-  {symbol:"OANDA:XAU_USD",name:"Gold (XAU/USD)",price:2345,change:0.67,category:"Commodity"},
-  {symbol:"OANDA:XAG_USD",name:"Silver (XAG/USD)",price:29.40,change:1.23,category:"Commodity"},
-  {symbol:"OANDA:WTICO_USD",name:"Crude Oil WTI",price:78.65,change:-1.12,category:"Commodity"},
-  {symbol:"OANDA:NATGAS_USD",name:"Natural Gas",price:2.84,change:2.45,category:"Commodity"},
-  {symbol:"OANDA:COPPER",name:"Copper",price:4.52,change:0.88,category:"Commodity"},
   // ── Bonds ──
   {symbol:"TLT",name:"iShares 20Y Treasury",price:91.34,change:-0.45,category:"Bond"},
   {symbol:"IEF",name:"iShares 7-10Y Treasury",price:96.78,change:-0.22,category:"Bond"},
   {symbol:"HYG",name:"iShares High Yield Bond",price:77.40,change:0.15,category:"Bond"},
   {symbol:"LQD",name:"iShares Investment Grade",price:108.20,change:-0.08,category:"Bond"},
-  // ── Indexes ──
-  {symbol:"^GSPC",name:"S&P 500 Index",price:5782,change:0.84,category:"Index"},
-  {symbol:"^DJI",name:"Dow Jones Industrial",price:39420,change:0.41,category:"Index"},
-  {symbol:"^IXIC",name:"NASDAQ Composite",price:18240,change:1.23,category:"Index"},
-  {symbol:"^VIX",name:"CBOE Volatility Index",price:14.82,change:-3.45,category:"Index"},
-  {symbol:"^RUT",name:"Russell 2000",price:2013,change:0.92,category:"Index"},
-  {symbol:"^GSPTSE",name:"S&P/TSX Composite",price:22450,change:0.28,category:"Index"},
   // ── Real Estate ──
   {symbol:"VNQ",name:"Vanguard Real Estate ETF",price:84.60,change:0.42,category:"Real Estate"},
   {symbol:"O",name:"Realty Income Corp",price:54.30,change:0.18,category:"Real Estate"},
@@ -261,7 +233,7 @@ export const ASSET_KEYWORDS = {
   DE:["deere","john deere","de","tractor","farm equipment","agriculture","construction"],
 };
 // All categories for filter UI
-export const ALL_CATEGORIES=["All","Stock","ETF","Crypto","Forex","Commodity","Bond","Index","Real Estate","Energy","AI","Healthcare","Biotech","Financial","Industrial","Consumer","Defense","Telecom","Utility","Transport","Materials","Agriculture"];
+export const ALL_CATEGORIES=["All","Stock","ETF","Bond","Real Estate","Energy","AI","Healthcare","Biotech","Financial","Industrial","Consumer","Defense","Telecom","Utility","Transport","Materials","Agriculture"];
 export const SIGNAL_ALLOWED_CATS=["Stock","ETF","AI"];
 
 export const SECTOR_BENCHMARKS={

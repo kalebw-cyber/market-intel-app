@@ -1140,6 +1140,7 @@ export default function MarketAnalyzer(){
   const callCountRef=useRef(0);
   const callResetRef=useRef(Date.now());
   const processingRef=useRef(false);
+  const quoteBackoffRef=useRef({failCount:0,until:0});
 
   // Save price to cache
   const savePriceCache=useCallback(()=>{
@@ -1169,35 +1170,45 @@ export default function MarketAnalyzer(){
     asset._sectorHistory=sectorAsset?._history||[];
   },[fetchCandleHistory]);
 
-  // Fetch single symbol with rate limiting
+  // Fetch single symbol with rate limiting + exponential backoff on 502
   const fetchSingleQuote=useCallback(async(sym)=>{
     if(sym.includes(":")||sym.startsWith("^"))return false;
-    // Rate limit: max 55/min
+
+    // Honour active backoff window (Finnhub rate-limit recovery)
+    const backoff=quoteBackoffRef.current;
+    if(Date.now()<backoff.until)return false;
+
+    // Client-side rate limit: max 55/min
     const now=Date.now();
     if(now-callResetRef.current>60000){callCountRef.current=0;callResetRef.current=now;}
-    if(callCountRef.current>=55)return false; // rate limited, skip
-    
+    if(callCountRef.current>=55)return false;
+
     // Min 1s between calls
     const elapsed=now-lastFetchTimeRef.current;
     if(elapsed<1000)await new Promise(r=>setTimeout(r,1000-elapsed));
-    
+
     try{
       callCountRef.current++;
       lastFetchTimeRef.current=Date.now();
-      // Use request coalescing to avoid duplicate simultaneous requests
       const res=await requestBatcher.fetchWithCoalescing(finnhubUrl("/quote",{symbol:sym}), undefined, 3, 100);
+
+      // 502 = Finnhub rate-limited us — back off exponentially (10s → 20s → 40s → 60s max)
+      if(res.status===502){
+        backoff.failCount=Math.min(backoff.failCount+1,4);
+        backoff.until=Date.now()+Math.min(10000*Math.pow(2,backoff.failCount-1),60000);
+        console.warn(`[quote] 502 from Finnhub — backing off ${Math.round((backoff.until-Date.now())/1000)}s (strike ${backoff.failCount})`);
+        return false;
+      }
+
       const data=await res.json();
       if(data&&data.c>0){
+        backoff.failCount=0;backoff.until=0; // reset on success
         const asset=ASSETS.find(a=>a.symbol===sym);
         if(asset){
           asset.price=data.c;
           asset.change=data.pc>0?+((data.c-data.pc)/data.pc*100).toFixed(2):0;
           asset._live=true;
-          // Fetch candle and benchmark histories in parallel
-          await Promise.all([
-            fetchCandleHistory(sym),
-            attachBenchmarkHistories(sym)
-          ]);
+          await Promise.all([fetchCandleHistory(sym),attachBenchmarkHistories(sym)]);
           return true;
         }
       }

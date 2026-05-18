@@ -12,6 +12,7 @@ export type ClientLogEntry = {
   size_bytes?: number;
   cache?: string;
   error?: string;
+  tokens?: { input: number; output: number; total: number };
 };
 
 const LS_KEY = "marketintel_api_logs";
@@ -112,6 +113,10 @@ export function installFetchInterceptor(): void {
     const latency_ms = Date.now() - startMs;
     const cacheHeader = response.headers.get("X-MarketIntel-Cache") ?? undefined;
     const sizeHint = Number(response.headers.get("content-length") ?? 0) || undefined;
+    const tokenTotal = Number(response.headers.get("X-Token-Total") ?? 0);
+    const tokens = tokenTotal > 0
+      ? { input: Number(response.headers.get("X-Token-Input") ?? 0), output: Number(response.headers.get("X-Token-Output") ?? 0), total: tokenTotal }
+      : undefined;
 
     const entry: ClientLogEntry = {
       requestId,
@@ -124,6 +129,7 @@ export function installFetchInterceptor(): void {
       latency_ms,
       size_bytes: sizeHint,
       cache: cacheHeader,
+      tokens,
     };
     appendLog(entry);
 
@@ -147,9 +153,9 @@ export function clearClientLogs(): void {
 export function exportClientLogs(format: "json" | "csv" = "json"): string {
   const logs = loadLogs();
   if (format === "csv") {
-    const headers = "requestId,timestamp,service,endpoint,method,status,latency_ms,size_bytes,cache,error";
+    const headers = "requestId,timestamp,service,endpoint,method,status,latency_ms,size_bytes,cache,error,tokens_input,tokens_output,tokens_total";
     const rows = logs.map((e) =>
-      [e.requestId, e.timestamp, e.service, e.endpoint, e.method, e.status, e.latency_ms, e.size_bytes ?? "", e.cache ?? "", e.error ?? ""]
+      [e.requestId, e.timestamp, e.service, e.endpoint, e.method, e.status, e.latency_ms, e.size_bytes ?? "", e.cache ?? "", e.error ?? "", e.tokens?.input ?? "", e.tokens?.output ?? "", e.tokens?.total ?? ""]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(",")
     );

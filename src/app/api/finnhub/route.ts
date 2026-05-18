@@ -25,7 +25,7 @@ const store =
   });
 
 const ENDPOINT_TTL: Record<string, number> = {
-  "/quote": 45_000,
+  "/quote": 65_000,
   "/stock/candle": 30 * 60_000,
   "/search": 24 * 60 * 60_000,
   "/stock/profile2": 24 * 60 * 60_000,

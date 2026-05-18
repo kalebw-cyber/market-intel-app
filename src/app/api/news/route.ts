@@ -156,6 +156,9 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "application/json",
         "X-MarketIntel-Request-Id": requestId,
+        "X-Token-Input": String(tokens?.input ?? 0),
+        "X-Token-Output": String(tokens?.output ?? 0),
+        "X-Token-Total": String(tokens?.total ?? 0),
       },
     });
   } catch (e: unknown) {

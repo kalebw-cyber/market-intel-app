@@ -34,6 +34,15 @@ function finnhubUrl(endpoint,params={}){
 }
 
 function Spinner(){return <span style={{display:"inline-block",width:14,height:14,border:"2px solid #F59E0B33",borderTopColor:"#F59E0B",borderRadius:"50%",animation:"spin 0.7s linear infinite",verticalAlign:"middle"}}/>;}
+function Sparkline({history=[],width=60,height=22}:{history?:any[];width?:number;height?:number}){
+  const pts=(history||[]).filter((c:any)=>Number(c?.close)>0).slice(-30);
+  if(pts.length<5)return<span style={{fontSize:9,color:"#374151"}}>—</span>;
+  const closes=pts.map((c:any)=>Number(c.close));
+  const mn=Math.min(...closes),mx=Math.max(...closes),range=mx-mn||1;
+  const d=closes.map((v,i)=>`${i===0?"M":"L"}${((i/(closes.length-1))*width).toFixed(1)},${(height-((v-mn)/range)*height).toFixed(1)}`).join(" ");
+  const up=closes[closes.length-1]>=closes[0];
+  return(<svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{display:"block",overflow:"visible"}}><path d={d} fill="none" stroke={up?"#10B981":"#EF4444"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/></svg>);
+}
 function PulsingDot({color="#10B981"}){return(<span style={{position:"relative",display:"inline-block",width:8,height:8,flexShrink:0}}><span style={{position:"absolute",inset:0,borderRadius:"50%",background:color,animation:"ping 1.4s ease-in-out infinite",opacity:0.5}}/><span style={{position:"absolute",inset:0,borderRadius:"50%",background:color}}/></span>);}
 function Pill({label,color,bg,border}){return <span style={{fontSize:9,fontWeight:700,letterSpacing:1.5,color,background:bg||`${color}18`,border:`1px solid ${border||color+"40"}`,borderRadius:4,padding:"2px 6px",textTransform:"uppercase",whiteSpace:"nowrap"}}>{label}</span>;}
 function getAssetPriceStatus(asset,{queued=false,limited=false}={}){
@@ -632,13 +641,14 @@ function MarketTable({assets,filter,setFilter,sortBy,onSort,detailSym,onOpenDeta
     </div>
     <div style={{background:th("#0A0A0F","#FFFFFF"),border:`1px solid ${th("#1F2937","#D1D5DB")}`,borderRadius:8,overflow:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:700}}>
-        <thead><tr style={{borderBottom:"1px solid #1F2937",background:th("#0D1117","#F3F4F6")}}>{[{c:"symbol",l:"SYMBOL"},{c:"name",l:"NAME"},{c:"cat",l:"TYPE"},{c:"price",l:"PRICE"},{c:"change",l:"CHANGE %"},{c:"",l:""},{c:"",l:""}].map(({c,l},i)=>(<th key={i} onClick={()=>c&&onSort(c)} style={{padding:"10px 12px",textAlign:"left",color:th("#4B5563","#6B7280"),letterSpacing:2,fontWeight:700,cursor:c?"pointer":"default",userSelect:"none",whiteSpace:"nowrap",fontSize:8}}>{l}{sortBy.col===c?(sortBy.dir==="asc"?" Send":" Down"):""}</th>))}</tr></thead>
+        <thead><tr style={{borderBottom:"1px solid #1F2937",background:th("#0D1117","#F3F4F6")}}>{[{c:"symbol",l:"SYMBOL"},{c:"name",l:"NAME"},{c:"cat",l:"TYPE"},{c:"price",l:"PRICE"},{c:"change",l:"CHANGE %"},{c:"",l:"TREND"},{c:"",l:""},{c:"",l:""}].map(({c,l},i)=>(<th key={i} onClick={()=>c&&onSort(c)} style={{padding:"10px 12px",textAlign:"left",color:th("#4B5563","#6B7280"),letterSpacing:2,fontWeight:700,cursor:c?"pointer":"default",userSelect:"none",whiteSpace:"nowrap",fontSize:8}}>{l}{sortBy.col===c?(sortBy.dir==="asc"?" Send":" Down"):""}</th>))}</tr></thead>
         <tbody>{displayed.map((a,i)=>{const isSel=detailSym===a.symbol;const isMover=detectMarketMovement(a);const inWL=watchlist.includes(a.symbol);const isLive=!!a._live;const ps=getPriceStatus?getPriceStatus(a):getAssetPriceStatus(a);return(<tr key={a.symbol} onClick={()=>onOpenDetail(a.symbol)} style={{borderBottom:i<displayed.length-1?`1px solid ${th("#111827","#E5E7EB")}`:"none",cursor:"pointer",transition:"background 0.12s",background:isSel?"rgba(245,158,11,0.07)":"transparent"}} onMouseEnter={e=>{if(!isSel)e.currentTarget.style.background=th("#0D1117","#F3F4F6");}} onMouseLeave={e=>e.currentTarget.style.background=isSel?"rgba(245,158,11,0.07)":"transparent"}>
           <td style={{padding:"10px 12px"}}><div style={{display:"flex",alignItems:"center",gap:5}}><span style={{color:"#F59E0B",fontWeight:700,letterSpacing:1,fontSize:11}}>{displaySymbol(a.symbol)}</span>{isMover&&<span style={{fontSize:8,color:"#EF4444",fontWeight:700}}></span>}{isLive&&<span style={{width:4,height:4,borderRadius:2,background:"#10B981",display:"inline-block"}}/>}</div></td>
           <td style={{padding:"10px 12px",color:th("#D1D5DB","#1F2937"),fontSize:11}}>{a.name?.slice(0,22)}</td>
           <td style={{padding:"10px 12px"}}><span style={{fontSize:9,fontWeight:700,letterSpacing:1,textTransform:"uppercase",borderRadius:4,padding:"2px 6px",color:({Stock:"#A78BFA",ETF:"#60A5FA",Bond:"#34D399",Crypto:"#F59E0B",Forex:"#14B8A6",Commodity:"#FB923C",Index:"#F472B6","Real Estate":"#8B5CF6",Energy:"#EF4444",AI:"#EC4899",Healthcare:"#06B6D4",Biotech:"#22D3EE",Financial:"#818CF8",Industrial:"#A3A3A3",Consumer:"#FB7185",Defense:"#64748B",Telecom:"#2DD4BF",Utility:"#84CC16",Transport:"#F97316",Materials:"#D97706",Agriculture:"#65A30D"})[a.category]||"#6B7280",background:`${({Stock:"#A78BFA",ETF:"#60A5FA",Crypto:"#F59E0B",Healthcare:"#06B6D4",AI:"#EC4899"})[a.category]||"#6B7280"}15`}}>{a.category}</span></td>
           <td style={{padding:"10px 12px",fontWeight:700,color:isLive?th("#F1F5F9","#111827"):th("#374151","#9CA3AF")}}><div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-start"}}><span>{a.price>0?`$${a.price.toFixed(2)}`:"-"}</span><PriceStatusBadge status={ps} size="xs"/></div></td>
           <td style={{padding:"10px 12px",fontWeight:700,color:a.change>=0?"#10B981":"#EF4444",fontSize:11}}>{a.change>=0?"+":"-"} {Math.abs(a.change).toFixed(2)}%</td>
+          <td style={{padding:"10px 12px"}}><Sparkline history={a._history}/></td>
           <td style={{padding:"10px 12px"}}><div style={{display:"flex",gap:6,alignItems:"center"}}><button aria-label={inWL?"Remove from watchlist":"Add to watchlist"} onClick={e=>{e.stopPropagation();onToggle(a.symbol);}} style={{width:26,height:24,background:inWL?"rgba(245,158,11,0.12)":"transparent",border:`1px solid ${inWL?"rgba(245,158,11,0.35)":th("#1F2937","#D1D5DB")}`,borderRadius:5,cursor:"pointer",color:inWL?"#F59E0B":th("#374151","#9CA3AF"),display:"flex",alignItems:"center",justifyContent:"center",padding:0}} title={inWL?"Remove from watchlist":"Add to watchlist"}><Icon name="star" size={13} color={inWL?"#F59E0B":"currentColor"} stroke={1.9}/></button><button onClick={e=>{e.stopPropagation();if(a.price>0)onBuy(a);}} style={{padding:"3px 8px",background:"rgba(16,185,129,0.1)",border:"1px solid rgba(16,185,129,0.25)",borderRadius:4,color:"#10B981",fontSize:8,cursor:"pointer",fontFamily:"inherit",fontWeight:700}}>BUY</button></div></td>
           <td style={{padding:"10px 12px"}}><span style={{fontSize:9,color:isSel?"#F59E0B":"#2D3748"}}>Open</span></td>
         </tr>);})}</tbody>
@@ -858,6 +868,8 @@ export default function MarketAnalyzer(){
     const shares=parseFloat(holdingForm.shares);
     const avgCost=parseFloat(holdingForm.avgCost);
     if(!sym||isNaN(shares)||isNaN(avgCost)||shares<=0||avgCost<=0){addNotif("Fill all fields correctly","alert");return;}
+    if(shares>100000){addNotif("Shares cannot exceed 100,000","alert");return;}
+    if(avgCost>999999){addNotif("Price cannot exceed $999,999 per share","alert");return;}
     if(!addPortfolioHolding({symbol:sym,shares,avgCost},`Added ${shares} shares of ${displaySymbol(sym)}`))return;
     setHoldingForm({symbol:"",shares:"",avgCost:""});
     setShowAddHolding(false);
@@ -880,7 +892,7 @@ export default function MarketAnalyzer(){
   const executeSignalBuy=()=>{
     if(!signalBuyModal)return;
     const qty=parseFloat(signalBuyQty);
-    if(isNaN(qty)||qty<=0){addNotif("Enter a valid share quantity","alert");return;}
+    if(isNaN(qty)||qty<=0||qty>100000){addNotif("Enter a valid quantity (1 – 100,000 shares)","alert");return;}
     if(!addPortfolioHolding({symbol:signalBuyModal.symbol,shares:qty,avgCost:signalBuyModal.price,source:"AI Signal",signalReason:signalBuyModal.reason},`Added ${qty} ${signalBuyModal.displaySym} from ${signalBuyModal.confidence} confidence ${signalBuyModal.action} signal`))return;
     setSignalBuyModal(null);setSignalBuyQty("1");
   };
@@ -1171,9 +1183,7 @@ export default function MarketAnalyzer(){
     if(!asset)return;
     const {market,sector}=getBenchmarkSymbols(asset);
     const symbols=[market,sector].filter(Boolean).filter((s,i,arr)=>arr.indexOf(s)===i&&s!==sym);
-    for(const benchSym of symbols){
-      await fetchCandleHistory(benchSym);
-    }
+    await Promise.all(symbols.map(s=>fetchCandleHistory(s)));
     const marketAsset=ASSETS.find(a=>a.symbol===market);
     const sectorAsset=ASSETS.find(a=>a.symbol===sector);
     asset._marketBenchmark=market;
@@ -1699,7 +1709,11 @@ export default function MarketAnalyzer(){
       <NotificationBell notifications={notifs} onRemove={removeNotif} onClear={clearNotifs}/>
       <button aria-label={theme==="dark"?"Switch to light mode":"Switch to dark mode"} onClick={()=>{const t=theme==="dark"?"light":"dark";setTheme(t);}} style={{width:32,height:30,background:"transparent",border:`1px solid ${th("#1F2937","#D1D5DB")}`,borderRadius:5,color:th("#6B7280","#4B5563"),cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center"}} title={theme==="dark"?"Switch to light mode":"Switch to dark mode"}>{theme==="dark"?<Icon name="sun" size={15}/>:<Icon name="moon" size={15}/>}</button>
     </nav>
-
+    {pricesVersion===0&&<div style={{background:"rgba(245,158,11,0.07)",borderBottom:"1px solid rgba(245,158,11,0.18)",padding:"6px 24px",display:"flex",alignItems:"center",gap:8,fontSize:10}}>
+      <span style={{fontWeight:800,letterSpacing:1.5,color:"#F59E0B",textTransform:"uppercase"}}>Demo Prices</span>
+      <span style={{color:"#92400E",fontSize:12,lineHeight:1}}>—</span>
+      <span style={{color:"#92400E"}}>Showing static placeholder data. Live quotes are loading from Finnhub...</span>
+    </div>}
     <div style={{maxWidth:1100,margin:"0 auto",padding:"22px 24px"}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:22}}>
         {[{l:"LIVE ARTICLES",v:news.length,c:"#F59E0B"},{l:"ANALYZED",v:analyzedCount,c:"#60A5FA"},{l:"HIGH IMPACT",v:news.filter(isHighImpact).length,c:"#EF4444"},{l:"MOVERS",v:moversCount,c:"#10B981"},{l:"WATCHLIST",v:watchlist.length,c:"#A78BFA"}].map(s=>(<div key={s.l} style={{background:th("#0A0A0F","#FFFFFF"),border:`1px solid ${th("#111827","#E5E7EB")}`,borderRadius:8,padding:"11px 14px"}}><div style={{fontSize:8,color:th("#374151","#9CA3AF"),letterSpacing:2,marginBottom:4,textTransform:"uppercase"}}>{s.l}</div><div style={{fontSize:24,fontWeight:700,color:s.c,fontFamily:"'Syne',sans-serif"}}>{s.v}</div></div>))}

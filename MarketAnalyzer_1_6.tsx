@@ -1151,8 +1151,20 @@ export default function MarketAnalyzer(){
     }catch{}
   },[]);
 
-  // /stock/candle is blocked on Finnhub's free tier — stub out to avoid wasted requests
-  const fetchCandleHistory=useCallback(async(_sym:string)=>false,[]);
+  const fetchCandleHistory=useCallback(async(sym:string):Promise<boolean>=>{
+    if(!sym||sym.includes(":")||sym.startsWith("^"))return false;
+    const asset=ASSETS.find(a=>a.symbol===sym);
+    // Skip if we already have fresh history (< 4 hours old)
+    if(asset?._history?.length&&asset?._historyFetchedAt&&Date.now()-asset._historyFetchedAt<4*60*60*1000)return true;
+    try{
+      const res=await fetch(`/api/yahoo-candle?symbol=${encodeURIComponent(sym)}`);
+      if(!res.ok)return false;
+      const candles=await res.json();
+      if(!Array.isArray(candles)||candles.length<20)return false;
+      if(asset){asset._history=candles;asset._historyFetchedAt=Date.now();}
+      return true;
+    }catch{return false;}
+  },[]);
 
   const attachBenchmarkHistories=useCallback(async(sym)=>{
     const asset=ASSETS.find(a=>a.symbol===sym);

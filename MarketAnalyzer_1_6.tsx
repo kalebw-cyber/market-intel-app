@@ -4,6 +4,7 @@ import ApiLoggerWidget from "./components/ApiLoggerWidget";
 import { ASSETS, ASSET_KEYWORDS, ALL_CATEGORIES, SIGNAL_ALLOWED_CATS, MOCK_NEWS, SECTOR_DATA, TOPIC_TAGS } from "./src/data/marketData";
 import { HI_KW, ERN_KW, MOVE_T, SC, AC, RC, VC, EVC, CONF_C } from "./src/styles/marketConstants";
 import { safePrompt, extractSource, displaySymbol, getAssetNews, detectEarnings, detectMarketMovement, detectTopics, generateEarningsInsight, explainMarketMovement, normalizeNewsItem, newsTokenSet, newsSimilarity, dedupeNewsArticles, getMarketSentiment, getFearGreed, detectMarketRegime, categoryAverage, textScore, clamp, classifyNewsQuality, webIntelligence, technicalStructure, portfolioRiskLayer, assetMarketProfile, institutionalDecision, generateNarrative, enhanceOpportunity, computeAssetRisk, generateAssetWhyMatters, generateAssetShortTerm, generateAssetLongTerm, generateOppWhyExists, isHighImpact, timeAgo, fmtCD, getBenchmarkSymbols } from "./src/lib/marketLogic";
+import { requestBatcher } from "./src/lib/requestBatcher";
 
 /* ====================== DATA =========================================== */
 
@@ -1163,7 +1164,8 @@ export default function MarketAnalyzer(){
       lastFetchTimeRef.current=Date.now();
       const to=Math.floor(Date.now()/1000);
       const from=to-(120*24*60*60);
-      const res=await fetch(finnhubUrl("/stock/candle",{symbol:sym,resolution:"D",from,to}));
+      // Use request coalescing for candle requests
+      const res=await requestBatcher.fetchWithCoalescing(finnhubUrl("/stock/candle",{symbol:sym,resolution:"D",from,to}), undefined, 3, 100);
       const data=await res.json();
       if(data?.s==="ok"&&Array.isArray(data.c)&&data.c.length>=20){
         const candles=data.c.map((close,i)=>({time:data.t?.[i],open:data.o?.[i]||close,high:data.h?.[i]||close,low:data.l?.[i]||close,close,volume:data.v?.[i]||0}));
@@ -1208,7 +1210,8 @@ export default function MarketAnalyzer(){
     try{
       callCountRef.current++;
       lastFetchTimeRef.current=Date.now();
-      const res=await fetch(finnhubUrl("/quote",{symbol:sym}));
+      // Use request coalescing to avoid duplicate simultaneous requests
+      const res=await requestBatcher.fetchWithCoalescing(finnhubUrl("/quote",{symbol:sym}), undefined, 3, 100);
       const data=await res.json();
       if(data&&data.c>0){
         const asset=ASSETS.find(a=>a.symbol===sym);
@@ -1216,8 +1219,11 @@ export default function MarketAnalyzer(){
           asset.price=data.c;
           asset.change=data.pc>0?+((data.c-data.pc)/data.pc*100).toFixed(2):0;
           asset._live=true;
-          await fetchCandleHistory(sym);
-          await attachBenchmarkHistories(sym);
+          // Fetch candle and benchmark histories in parallel
+          await Promise.all([
+            fetchCandleHistory(sym),
+            attachBenchmarkHistories(sym)
+          ]);
           return true;
         }
       }

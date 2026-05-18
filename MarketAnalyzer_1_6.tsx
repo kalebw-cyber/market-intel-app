@@ -1190,7 +1190,7 @@ export default function MarketAnalyzer(){
     try{
       callCountRef.current++;
       lastFetchTimeRef.current=Date.now();
-      const res=await requestBatcher.fetchWithCoalescing(finnhubUrl("/quote",{symbol:sym}), undefined, 3, 100);
+      const res=await requestBatcher.fetchWithCoalescing(finnhubUrl("/quote",{symbol:sym}), undefined, 0, 0);
 
       // 502 = Finnhub rate-limited us — back off exponentially (10s → 20s → 40s → 60s max)
       if(res.status===502){
@@ -1225,7 +1225,7 @@ export default function MarketAnalyzer(){
       const sym=priceQueueRef.current.shift();
       // Skip if already live and fetched recently
       const asset=ASSETS.find(a=>a.symbol===sym);
-      if(asset?._live&&asset?._fetchedAt&&Date.now()-asset._fetchedAt<60000){
+      if(asset?._live&&asset?._fetchedAt&&Date.now()-asset._fetchedAt<90000){
         if(asset._history?.length&&!asset._marketHistory?.length)await attachBenchmarkHistories(sym);
         continue;
       }

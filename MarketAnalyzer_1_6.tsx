@@ -1348,41 +1348,46 @@ export default function MarketAnalyzer(){
     @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
     @keyframes shimmer{0%,100%{opacity:0.4}50%{opacity:0.9}}
     @media(max-width:768px){
-      nav{padding:0 8px!important;gap:4px!important;height:44px!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+      nav{padding:0 8px!important;gap:4px!important;height:44px!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+      nav::-webkit-scrollbar{display:none}
       nav>*{flex-shrink:0!important}
       nav button{padding:3px 6px!important;font-size:8px!important}
       nav span{font-size:8px!important}
-      div[style*="gridTemplateColumns"]{grid-template-columns:1fr!important}
+      /* grids: match by value since DOM uses kebab-case property names */
       div[style*="repeat(4"]{grid-template-columns:repeat(2,1fr)!important}
       div[style*="repeat(5"]{grid-template-columns:repeat(2,1fr)!important}
-      div[style*="padding: 0px 32px"],div[style*="padding:0 32px"]{padding:0 10px!important}
-      div[style*="padding: 0px 24px"],div[style*="padding:0 24px"]{padding:0 10px!important}
-      table{font-size:9px!important;display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%!important;min-width:760px!important}
+      div[style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:1fr!important}
+      div[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr!important}
+      div[style*="minmax(310px"]{grid-template-columns:1fr!important}
+      div[style*="minmax(350px"]{grid-template-columns:1fr!important}
+      div[style*="minmax(170px"]{grid-template-columns:1fr!important}
+      /* tables scroll horizontally */
+      table{font-size:9px!important;display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%!important}
       td,th{padding:7px 8px!important;white-space:nowrap}
-      div[style*="width: 285px"],div[style*="width:285px"]{display:none!important}
+      /* gaps */
       div[style*="gap: 14px"]{gap:6px!important}
       div[style*="gap: 10px"]{gap:6px!important}
-      div[style*="minWidth: 310px"],div[style*="minmax(310px"]{min-width:100%!important}
-      div[style*="minmax(350px"]{min-width:100%!important}
-      div[style*="minmax(170px"]{grid-template-columns:1fr!important}
-      div[style*="fontSize: 28px"],div[style*="fontSize:28"]{font-size:20px!important}
-      div[style*="fontSize: 20px"],div[style*="fontSize:20"]{font-size:16px!important}
-      div[style*="maxWidth: 540px"],div[style*="maxWidth:540"]{max-width:95%!important;padding:16px!important}
-      div[style*="maxWidth: 680px"],div[style*="maxWidth:680"]{max-width:95%!important;padding:16px!important}
+      div[style*="gap: 18px"]{gap:8px!important}
+      /* main container padding */
+      div[style*="max-width: 1100px"]{padding:14px 10px!important}
+      div[style*="padding: 6px 24px"]{padding:6px 10px!important}
+      div[style*="padding: 22px 24px"]{padding:14px 10px!important}
+      /* font sizes (DOM uses kebab-case: font-size) */
+      div[style*="font-size: 28px"]{font-size:20px!important}
+      div[style*="font-size: 20px"]{font-size:16px!important}
+      /* modals: full width, scroll from top */
       div[style*="position: fixed"][style*="inset: 0"]{padding:8px!important;align-items:flex-start!important;justify-content:center!important;overflow-y:auto!important}
-      div[style*="position: fixed"][style*="inset: 0"] > div{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;margin:8px 0!important;overflow-y:auto!important}
-      div[style*="maxWidth: 400px"],div[style*="maxWidth:400"],div[style*="maxWidth: 460px"],div[style*="maxWidth:460"],div[style*="maxWidth: 620px"],div[style*="maxWidth:620"],div[style*="maxWidth: 700px"],div[style*="maxWidth:700"]{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important}
-      div[style*="gridTemplateColumns: \"repeat(3"],div[style*="gridTemplateColumns:\"repeat(3"],div[style*="gridTemplateColumns: \"1fr 1fr"],div[style*="gridTemplateColumns:\"1fr 1fr"]{grid-template-columns:1fr!important}
+      div[style*="position: fixed"][style*="inset: 0"]>div{width:calc(100vw - 16px)!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;margin:8px 0!important;overflow-y:auto!important}
       div[style*="position: fixed"][style*="right: 20px"]{right:8px!important;bottom:8px!important}
-      div[style*="width: 320px"]{width:280px!important}
+      /* notification dropdown */
+      div[style*="width: 320px"]{width:min(320px,90vw)!important}
       button{max-width:100%;overflow:hidden;text-overflow:ellipsis}
     }
     @media(max-width:480px){
       nav{height:40px!important}
       div[style*="repeat(2"]{grid-template-columns:1fr!important}
-      div[style*="fontSize: 16px"]{font-size:13px!important}
-      div[style*="flexWrap: wrap"]{gap:3px!important}
-      div[style*="flexWrap:wrap"]{gap:3px!important}
+      div[style*="font-size: 16px"]{font-size:13px!important}
+      div[style*="flex-wrap: wrap"]{gap:3px!important}
     }
     ${!isDark?`
     [data-theme="light"]{color:#111827!important}

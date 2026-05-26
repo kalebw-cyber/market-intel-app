@@ -859,8 +859,18 @@ export default function MarketAnalyzer(){
   };
   const addPortfolioHolding=(holding,msg)=>{
     if(!validateBuyingPower(holding.shares,holding.avgCost,holding.symbol))return false;
-    setPortfolio(p=>[...p,{id:Date.now(),addedAt:new Date().toISOString(),...holding}]);
-    addNotif(msg||`Added ${holding.shares} shares of ${displaySymbol(holding.symbol)}`,"success");
+    let merged=false;
+    setPortfolio(p=>{
+      const existing=p.find(h=>h.symbol===holding.symbol||h._fullSymbol===holding.symbol||holding._fullSymbol===h.symbol);
+      if(existing){
+        merged=true;
+        const totalShares=existing.shares+holding.shares;
+        const newAvgCost=+(( existing.shares*existing.avgCost+holding.shares*holding.avgCost)/totalShares).toFixed(4);
+        return p.map(h=>h.id===existing.id?{...h,shares:totalShares,avgCost:newAvgCost}:h);
+      }
+      return[...p,{id:Date.now(),addedAt:new Date().toISOString(),...holding}];
+    });
+    addNotif(merged?`Added ${holding.shares} more shares to existing ${displaySymbol(holding.symbol)} position`:msg||`Added ${holding.shares} shares of ${displaySymbol(holding.symbol)}`,"success");
     return true;
   };
   const addHolding=()=>{
@@ -1760,7 +1770,8 @@ export default function MarketAnalyzer(){
             {!newsFilter.includes("All")&&<><span style={{fontSize:9,color:"#1F2937",margin:"0 4px"}}>|</span><span style={{fontSize:9,color:th("#4B5563","#6B7280")}}>{filteredNews.length}/{news.length}</span><span style={{fontSize:9,color:"#60A5FA",marginLeft:4}}>{newsFilter.join(" + ")}</span><button onClick={()=>setNewsFilter(["All"])} style={{padding:"2px 7px",fontSize:9,background:"transparent",border:`1px solid ${th("#1F2937","#D1D5DB")}`,borderRadius:4,color:th("#374151","#9CA3AF"),cursor:"pointer",fontFamily:"inherit",marginLeft:4}}>x Clear</button></>}
           </div>
         </div>
-        {fetching&&news===MOCK_NEWS?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:14}}>{[...Array(6)].map((_,i)=><NewsCardSkeleton key={i}/>)}</div>:filteredNews.length===0?<div style={{textAlign:"center",padding:"52px 0"}}><div style={{fontSize:28,marginBottom:12}}>Search</div><div style={{fontSize:13,color:th("#4B5563","#6B7280"),marginBottom:6}}>No articles match "{newsFilter}"</div><div style={{fontSize:11,color:th("#374151","#9CA3AF")}}>Try a different filter or refresh the news feed</div></div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:14}}>{filteredNews.map((article,i)=>{const origIdx=news.indexOf(article);return(<NewsCard key={origIdx} index={origIdx} article={article} analysis={analyses[origIdx]} isAnalyzing={!!analyzing[origIdx]} onAnalyze={analyzeArticle}/>);})}</div>}
+        {liveStatus==="demo"&&!fetching&&<div style={{background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:6,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:8,fontSize:11}}><span style={{color:"#EF4444",fontWeight:800,letterSpacing:1}}>DEMO DATA</span><span style={{color:"#7F1D1D"}}>—</span><span style={{color:"#7F1D1D"}}>Showing placeholder headlines. Live Finnhub data unavailable — refresh to retry.</span></div>}
+        {fetching&&liveStatus==="loading"?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:14}}>{[...Array(6)].map((_,i)=><NewsCardSkeleton key={i}/>)}</div>:filteredNews.length===0?<div style={{textAlign:"center",padding:"52px 0"}}><div style={{fontSize:28,marginBottom:12}}>Search</div><div style={{fontSize:13,color:th("#4B5563","#6B7280"),marginBottom:6}}>No articles match "{newsFilter}"</div><div style={{fontSize:11,color:th("#374151","#9CA3AF")}}>Try a different filter or refresh the news feed</div></div>:<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:14}}>{filteredNews.map((article,i)=>{const origIdx=news.indexOf(article);return(<NewsCard key={origIdx} index={origIdx} article={article} analysis={analyses[origIdx]} isAnalyzing={!!analyzing[origIdx]} onAnalyze={analyzeArticle}/>);})}</div>}
       </div>)}
       {tab==="market"&&<MarketTable assets={filteredAssets} filter={catF} setFilter={setCatF} sortBy={sortBy} onSort={col=>setSortBy(p=>({col,dir:p.col===col&&p.dir==="asc"?"desc":"asc"}))} detailSym={detailSym} onOpenDetail={openDetail} news={news} analyses={analyses} watchlist={watchlist} onToggle={toggleWatch} onFetchCategory={fetchCategoryPrices} getPriceStatus={getPriceStatus} onBuy={(a)=>{const sym=displaySymbol(a.symbol);const shares=safePrompt("Buy "+sym+" at $"+a.price.toFixed(2)+"\nEnter number of shares:","1")||"1";const qty=parseFloat(shares);if(isNaN(qty)||qty<=0)return;addPortfolioHolding({symbol:a.symbol,shares:qty,avgCost:a.price},"Bought "+qty+" shares of "+sym);}}/>}
 

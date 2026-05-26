@@ -1,8 +1,9 @@
 import { ASSETS, ASSET_KEYWORDS, TOPIC_TAGS, SECTOR_BENCHMARKS, SYMBOL_BENCHMARKS } from "../data/marketData";
 import { HI_KW, ERN_KW, MOVE_T } from "../styles/marketConstants";
 
-export function safePrompt(message,defaultValue=""){
-  return defaultValue||null;
+export function safePrompt(message:string,defaultValue=""):string|null{
+  if(typeof window==="undefined")return defaultValue||null;
+  return window.prompt(message,defaultValue);
 }
 
 export function extractSource(url){try{const h=new URL(url).hostname.replace("www.","");if(h.includes("yahoo"))return"Yahoo Finance";if(h.includes("reuters"))return"Reuters";if(h.includes("bloomberg"))return"Bloomberg";if(h.includes("cnbc"))return"CNBC";if(h.includes("wsj"))return"WSJ";if(h.includes("marketwatch"))return"MarketWatch";if(h.includes("ft.com"))return"FT";const p=h.split(".");return p[p.length-2]||"News";}catch{return"Yahoo Finance";}}

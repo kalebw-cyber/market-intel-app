@@ -294,8 +294,8 @@ export default function ApiLoggerWidget() {
 
   const triggerStyle: React.CSSProperties = {
     position: "fixed",
-    bottom: 20,
-    right: 20,
+    bottom: 24,
+    right: 84,
     zIndex: 9990,
     width: 44,
     height: 44,
@@ -348,7 +348,7 @@ export default function ApiLoggerWidget() {
         <div
           style={{
             position: "fixed",
-            bottom: 72,
+            bottom: 76,
             right: 20,
             width: 560,
             maxWidth: "calc(100vw - 40px)",
